@@ -1,4 +1,23 @@
+---
+title: "Experiment"
+output: html_document
+---
 
+```{r, results = "hide"}
+set.seed(123)
+library(tidyverse)
+files <- list.files("Heston_Standard", 
+                    pattern = "\\.R$", 
+                    full.names = TRUE)
+lapply(files, source)
+
+source("Param_Est/R_Est.R")
+
+```
+
+
+Parameter Set up
+```{r}
 d <- 3
 T <- 1
 N <- 252
@@ -37,7 +56,11 @@ R <- matrix(c(
 
 alpha0 <- 0.001
 alpha  <- c(0.8, 0.5, 0.3)
+```
 
+
+Simulation
+```{r}
 sim <- simulate_CIR_dependent(
   x0 = x0, Reg_series = Reg, param_mat = param_mat,
   T = T, N = N, M = 1,
@@ -50,9 +73,11 @@ r <- sim$r_paths
 plot_multi_series(Reg)
 plot_multi_series(X)
 plot(r, type = 'l')
+```
 
 
-
+Vector form Get_init
+```{r}
 init <- initial_heuristic_multi(X, states = 2, dt = 1/252)
 plot_multi_series(init$cluster)
 plot_multi_series(Reg)
@@ -60,11 +85,12 @@ init$reg_param
 init$Gamma_list
 init$R_hat
 R
+```
 
 
 
 
-
+```{r}
 
 kappa1 <- cbind(param_mat[1,1], param_mat[4,1])
 theta1 <- cbind(param_mat[1,2], param_mat[4,2])
@@ -87,6 +113,86 @@ plot_single_viterbi(X[2,], nstates, Gamma2, kappa2, theta2, sigma2, Reg[2,], "X2
 
 # Process 3
 plot_single_viterbi(X[3,], nstates, Gamma3, kappa3, theta3, sigma3, Reg[3,], "X3")
+
+
+
+
+```
+
+
+
+```{r}
+
+start_date <- as.Date("2024-01-01")
+date_sequence <- seq(from = start_date, by = "day", length.out = N+1)
+    
+
+X1_BW_res <- baum_welch_single_analysis(
+  X_series = X[1,],         
+  Reg_chain = Reg[1,],      
+  date_sequence = date_sequence,
+  nstates = 2,
+  runs = 10,
+  dt = 1/252,
+  interval_step = 10,
+  subtitle_text = "X1"
+)
+
+
+X2_BW_res <- baum_welch_single_analysis(
+  X_series = X[2,],         
+  Reg_chain = Reg[2,],      
+  date_sequence = date_sequence,
+  nstates = 2,
+  runs = 10,
+  dt = 1/252,
+  interval_step = 10,
+  subtitle_text = "X2"
+)
+
+
+
+X3_BW_res <- baum_welch_single_analysis(
+  X_series = X[3,],         
+  Reg_chain = Reg[3,],      
+  date_sequence = date_sequence,
+  nstates = 2,
+  runs = 10,
+  dt = 1/252,
+  interval_step = 10,
+  subtitle_text = "X3"
+)
+```
+
+
+
+
+```{r}
+X1_BW_res$params
+X2_BW_res$params
+X3_BW_res$params
+```
+
+```{r}
+params_list <- list(X1_BW_res$params, X2_BW_res$params, X3_BW_res$params)
+states_list <- list(X1_BW_res$states_estimate, X2_BW_res$states_estimate, X3_BW_res$states_estimate)
+
+outR <- estimate_R_sample_from_BW(
+  X = X, 
+  params_list = params_list,
+  states_list = states_list,
+  dt = 1/252
+)
+
+outR$R_hat
+```
+
+
+
+
+
+
+
 
 
 
